@@ -1,4 +1,4 @@
-name: Windows RDP Ngrok
+name: Windows RDP Pinggy
 
 on:
   workflow_dispatch:
@@ -16,45 +16,44 @@ jobs:
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
           Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
 
-      - name: 🌐 Instalar e Ativar Ngrok
+      - name: 🌐 Iniciar Túnel RDP
         shell: powershell
         run: |
-          choco install ngrok -y
-          ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
-          Start-Process ngrok -ArgumentList "tcp 3389 --log=stdout" -RedirectStandardOutput "ngrok.log" -RedirectStandardError "ngrok_err.log"
+          $client = New-Object System.Net.Sockets.TcpClient("a.pinggy.io", 443)
+          # Conecta via SSH/Pinggy sem precisar de conta ou cartão
+          Start-Process ssh -ArgumentList "-o StrictHostKeyChecking=no -p 443 -R 0:localhost:3389 qr@a.pinggy.io" -RedirectStandardOutput "pinggy.log" -RedirectStandardError "pinggy_err.log"
 
       - name: 📌 Exibir Endereço de Conexão
         shell: powershell
         run: |
-          $maxAttempts = 12
+          $maxAttempts = 10
           $attempt = 0
-          $url = $null
+          $found = $false
 
           while ($attempt -lt $maxAttempts) {
-            Start-Sleep -Seconds 5
+            Start-Sleep -Seconds 3
             $attempt++
-            try {
-              $log = Invoke-RestMethod -Uri http://127.0.0.1:4040/api/tunnels -ErrorAction Stop
-              $url = $log.tunnels[0].public_url
-              if ($url) { break }
-            } catch {
-              echo "Aguardando Ngrok iniciar... (Tentativa $attempt de $maxAttempts)"
+            if (Test-Path pinggy.log) {
+              $content = Get-Content pinggy.log -Raw
+              if ($content -match "tcp://([a-zA-Z0-9\.-]+:\d+)") {
+                $address = $matches[1]
+                echo "=========================================="
+                echo "CONECTE NO WINDOWS APP USANDO ESTE ENDEREÇO:"
+                echo $address
+                echo "=========================================="
+                $found = $true
+                break
+              }
             }
           }
 
-          if ($url) {
-            echo "=========================================="
-            echo "CONECTE NO WINDOWS APP USANDO ESTE ENDEREÇO:"
-            echo $url
-            echo "=========================================="
-          } else {
-            echo "⚠️ Falha ao obter a URL do Ngrok. Verifique o secret NGROK_AUTH_TOKEN."
-            if (Test-Path ngrok_err.log) { Get-Content ngrok_err.log }
-            if (Test-Path ngrok.log) { Get-Content ngrok.log }
-            exit 1
+          if (-not $found) {
+            echo "Aguardando link do Pinggy..."
+            if (Test-Path pinggy.log) { Get-Content pinggy.log }
+            if (Test-Path pinggy_err.log) { Get-Content pinggy_err.log }
           }
 
       - name: ⚡ Manter Máquina Ligada
         run: |
-          cmd /c "echo RDP ativo via Ngrok! & pause > nul"
+          cmd /c "echo RDP ativo via Pinggy! & pause > nul"
           
