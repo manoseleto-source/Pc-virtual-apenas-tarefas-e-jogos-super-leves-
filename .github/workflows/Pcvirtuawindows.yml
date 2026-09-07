@@ -19,31 +19,14 @@ jobs:
       - name: 🌐 Iniciar Túnel e Exibir Endereço
         shell: powershell
         run: |
-          # Conecta via SSH nativo no Pinggy em segundo plano
-          $process = Start-Process ssh -ArgumentList "-o StrictHostKeyChecking=no -o ServerAliveInterval=30 -p 443 -R 0:localhost:3389 qr@a.pinggy.io" -RedirectStandardOutput "pinggy.log" -RedirectStandardError "pinggy_err.log" -PassThru
+          $process = Start-Process ssh -ArgumentList "-t -t -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -p 443 -R 0:localhost:3389 qr@a.pinggy.io" -RedirectStandardOutput "pinggy.log" -RedirectStandardError "pinggy_err.log" -PassThru
 
-          $address = $null
-          for ($i = 0; $i -lt 15; $i++) {
-            Start-Sleep -Seconds 2
-            if (Test-Path pinggy.log) {
-              $log = Get-Content pinggy.log -Raw
-              if ($log -match "(a\.pinggy\.io:\d+)") {
-                $address = $matches[1]
-                break
-              }
-            }
-          }
+          Start-Sleep -Seconds 10
 
-          if ($address) {
+          if (Test-Path pinggy.log) {
             echo "=========================================="
-            echo "COPIE E COLE ISSO NO WINDOWS APP:"
-            echo $address
+            Get-Content pinggy.log
             echo "=========================================="
-          } else {
-            echo "=== LOGS DE SAIDA ==="
-            if (Test-Path pinggy.log) { Get-Content pinggy.log }
-            echo "=== LOGS DE ERRO ==="
-            if (Test-Path pinggy_err.log) { Get-Content pinggy_err.log }
           }
 
       - name: ⚡ Manter Máquina Ligada
