@@ -1,4 +1,4 @@
-name: Windows RDP Pinggy
+name: Windows RDP
 
 on:
   workflow_dispatch:
@@ -19,16 +19,16 @@ jobs:
       - name: 🌐 Iniciar Túnel e Exibir Endereço
         shell: powershell
         run: |
-          $proc = Start-Process ssh -ArgumentList "-n -T -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -p 443 -R 0:localhost:3389 qr@a.pinggy.io" -RedirectStandardOutput "pinggy.log" -RedirectStandardError "pinggy.log" -PassThru
+          Invoke-WebRequest -Uri "https://github.com/ekzhang/bore/releases/download/v0.5.0/bore-v0.5.0-x86_64-pc-windows-msvc.zip" -OutFile "bore.zip"
+          Expand-Archive -Path "bore.zip" -DestinationPath "."
 
-          Start-Sleep -Seconds 12
+          Start-Process -FilePath ".\bore.exe" -ArgumentList "local 3389 --to bore.pub" -RedirectStandardOutput "bore.log" -RedirectStandardError "bore_err.log"
+
+          Start-Sleep -Seconds 8
 
           echo "=========================================="
-          if (Test-Path pinggy.log) {
-            Get-Content pinggy.log
-          } else {
-            echo "Aguardando log do Pinggy..."
-          }
+          if (Test-Path bore.log) { Get-Content bore.log }
+          if (Test-Path bore_err.log) { Get-Content bore_err.log }
           echo "=========================================="
 
       - name: ⚡ Manter Máquina Ligada
