@@ -1,0 +1,54 @@
+name: Windows RDP Pinggy Virtua
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 360
+
+    steps:
+      - name: 🔑 Criar Usuário e Habilitar RDP
+        run: |
+          net user RunnerUser MinhaSenha123! /add
+          net localgroup Administrators RunnerUser /add
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
+          Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+
+      - name: 🌐 Iniciar Túnel e Exibir Endereço
+        shell: powershell
+        run: |
+          # Baixa o cliente do Pinggy
+          Invoke-WebRequest -Uri "https://pinggy.io/cli/pinggy.exe" -OutFile "pinggy.exe"
+          
+          # Inicia o túnel TCP na porta 3389 do RDP
+          Start-Process -FilePath ".\pinggy.exe" -ArgumentList "-p 443 -R 0:localhost:3389 qr@a.pinggy.io" -RedirectStandardOutput "pinggy.log" -RedirectStandardError "pinggy_err.log"
+          
+          # Aguarda o túnel gerar a URL
+          $address = $null
+          for ($i = 0; $i -lt 15; $i++) {
+            Start-Sleep -Seconds 2
+            if (Test-Path pinggy.log) {
+              $log = Get-Content pinggy.log -Raw
+              if ($log -match "(tcp://[a-zA-Z0-9\.-]+:\d+)") {
+                $address = $matches[1] -replace "tcp://", ""
+                break
+              }
+            }
+          }
+
+          if ($address) {
+            echo "=========================================="
+            echo "COPIE E COLE ISSO NO WINDOWS APP:"
+            echo $address
+            echo "=========================================="
+          } else {
+            echo "⚠️ Não foi possível obter o endereço. Logs:"
+            Get-Content pinggy.log
+          }
+
+      - name: ⚡ Manter Máquina Ligada
+        run: |
+          cmd /c "echo RDP ativo via Pinggy! & pause > nul"
+          
