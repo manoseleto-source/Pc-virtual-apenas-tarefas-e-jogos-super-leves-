@@ -16,41 +16,36 @@ jobs:
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
           Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
 
-      - name: 🌐 Iniciar Túnel RDP
+      - name: 🌐 Iniciar Túnel e Exibir Endereço
         shell: powershell
         run: |
-          $client = New-Object System.Net.Sockets.TcpClient("a.pinggy.io", 443)
-          # Conecta via SSH/Pinggy sem precisar de conta ou cartão
-          Start-Process ssh -ArgumentList "-o StrictHostKeyChecking=no -p 443 -R 0:localhost:3389 qr@a.pinggy.io" -RedirectStandardOutput "pinggy.log" -RedirectStandardError "pinggy_err.log"
-
-      - name: 📌 Exibir Endereço de Conexão
-        shell: powershell
-        run: |
-          $maxAttempts = 10
-          $attempt = 0
-          $found = $false
-
-          while ($attempt -lt $maxAttempts) {
-            Start-Sleep -Seconds 3
-            $attempt++
+          # Baixa o cliente do Pinggy
+          Invoke-WebRequest -Uri "https://pinggy.io/cli/pinggy.exe" -OutFile "pinggy.exe"
+          
+          # Inicia o túnel TCP na porta 3389 do RDP
+          Start-Process -FilePath ".\pinggy.exe" -ArgumentList "-p 443 -R 0:localhost:3389 qr@a.pinggy.io" -RedirectStandardOutput "pinggy.log" -RedirectStandardError "pinggy_err.log"
+          
+          # Aguarda o túnel gerar a URL
+          $address = $null
+          for ($i = 0; $i -lt 15; $i++) {
+            Start-Sleep -Seconds 2
             if (Test-Path pinggy.log) {
-              $content = Get-Content pinggy.log -Raw
-              if ($content -match "tcp://([a-zA-Z0-9\.-]+:\d+)") {
-                $address = $matches[1]
-                echo "=========================================="
-                echo "CONECTE NO WINDOWS APP USANDO ESTE ENDEREÇO:"
-                echo $address
-                echo "=========================================="
-                $found = $true
+              $log = Get-Content pinggy.log -Raw
+              if ($log -match "(tcp://[a-zA-Z0-9\.-]+:\d+)") {
+                $address = $matches[1] -replace "tcp://", ""
                 break
               }
             }
           }
 
-          if (-not $found) {
-            echo "Aguardando link do Pinggy..."
-            if (Test-Path pinggy.log) { Get-Content pinggy.log }
-            if (Test-Path pinggy_err.log) { Get-Content pinggy_err.log }
+          if ($address) {
+            echo "=========================================="
+            echo "COPIE E COLE ISSO NO WINDOWS APP:"
+            echo $address
+            echo "=========================================="
+          } else {
+            echo "⚠️ Não foi possível obter o endereço. Logs:"
+            Get-Content pinggy.log
           }
 
       - name: ⚡ Manter Máquina Ligada
