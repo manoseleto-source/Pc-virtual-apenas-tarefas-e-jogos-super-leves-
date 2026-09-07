@@ -1,4 +1,4 @@
-name: Windows RDP Pinggy
+name: Windows RDP Cloudflare
 
 on:
   workflow_dispatch:
@@ -16,27 +16,19 @@ jobs:
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
           Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
 
-      - name: 🌐 Iniciar Pinggy e Exibir Endereço TCP
+      - name: 🌐 Iniciar Túnel Cloudflare e Exibir URL
         shell: powershell
         run: |
-          # Criar script em VBScript para executar o SSH sem esconder a saída TTY
-          $vbs = @"
-          Set WshShell = CreateObject("WScript.Shell")
-          WshShell.Run "cmd /c ssh -o StrictHostKeyChecking=no -p 443 -R 0:localhost:3389 qr@a.pinggy.io > %TEMP%\pinggy.txt 2>&1", 0, False
-          "@
-          Set-Content -Path "$env:TEMP\run_pinggy.vbs" -Value $vbs
+          Invoke-WebRequest -Uri "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe" -OutFile "cloudflared.exe"
+          
+          # Inicia o túnel TCP
+          Start-Process -FilePath ".\cloudflared.exe" -ArgumentList "tunnel --url tcp://localhost:3389" -RedirectStandardError "cf.log"
 
-          # Executa o script em segundo plano
-          cscript //nologo "$env:TEMP\run_pinggy.vbs"
-
-          # Aguarda 12 segundos para o Pinggy conectar e gravar o endereço
-          Start-Sleep -Seconds 12
+          Start-Sleep -Seconds 10
 
           echo "=========================================="
-          if (Test-Path "$env:TEMP\pinggy.txt") {
-            Get-Content "$env:TEMP\pinggy.txt"
-          } else {
-            echo "Aguardando arquivo de log..."
+          if (Test-Path cf.log) {
+            Get-Content cf.log | Select-String "trycloudflare.com"
           }
           echo "=========================================="
 
