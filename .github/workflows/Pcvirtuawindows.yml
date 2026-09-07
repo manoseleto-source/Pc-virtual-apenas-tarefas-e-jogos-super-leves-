@@ -1,4 +1,4 @@
-name: Windows RDP Pinggy Virtua
+name: Windows RDP Pinggy
 
 on:
   workflow_dispatch:
@@ -19,20 +19,16 @@ jobs:
       - name: 🌐 Iniciar Túnel e Exibir Endereço
         shell: powershell
         run: |
-          # Baixa o cliente do Pinggy
-          Invoke-WebRequest -Uri "https://pinggy.io/cli/pinggy.exe" -OutFile "pinggy.exe"
-          
-          # Inicia o túnel TCP na porta 3389 do RDP
-          Start-Process -FilePath ".\pinggy.exe" -ArgumentList "-p 443 -R 0:localhost:3389 qr@a.pinggy.io" -RedirectStandardOutput "pinggy.log" -RedirectStandardError "pinggy_err.log"
-          
-          # Aguarda o túnel gerar a URL
+          # Conecta via SSH nativo no Pinggy em segundo plano
+          $process = Start-Process ssh -ArgumentList "-o StrictHostKeyChecking=no -o ServerAliveInterval=30 -p 443 -R 0:localhost:3389 qr@a.pinggy.io" -RedirectStandardOutput "pinggy.log" -RedirectStandardError "pinggy_err.log" -PassThru
+
           $address = $null
           for ($i = 0; $i -lt 15; $i++) {
             Start-Sleep -Seconds 2
             if (Test-Path pinggy.log) {
               $log = Get-Content pinggy.log -Raw
-              if ($log -match "(tcp://[a-zA-Z0-9\.-]+:\d+)") {
-                $address = $matches[1] -replace "tcp://", ""
+              if ($log -match "(a\.pinggy\.io:\d+)") {
+                $address = $matches[1]
                 break
               }
             }
@@ -44,8 +40,10 @@ jobs:
             echo $address
             echo "=========================================="
           } else {
-            echo "⚠️ Não foi possível obter o endereço. Logs:"
-            Get-Content pinggy.log
+            echo "=== LOGS DE SAIDA ==="
+            if (Test-Path pinggy.log) { Get-Content pinggy.log }
+            echo "=== LOGS DE ERRO ==="
+            if (Test-Path pinggy_err.log) { Get-Content pinggy_err.log }
           }
 
       - name: ⚡ Manter Máquina Ligada
