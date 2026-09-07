@@ -1,0 +1,38 @@
+name: Windows GPU Game PC
+
+on:
+  workflow_dispatch:
+
+jobs:
+  gaming:
+    runs-on: [self-hosted, windows, gpu]
+
+    steps:
+      - name: 🎮 Verificar GPU
+        shell: powershell
+        run: |
+          Write-Host "=== GPU ==="
+          Get-CimInstance Win32_VideoController |
+            Select-Object Name, AdapterRAM
+
+      - name: 🧠 Verificar RAM
+        shell: powershell
+        run: |
+          Get-CimInstance Win32_ComputerSystem |
+            Select-Object TotalPhysicalMemory
+
+      - name: ⚙️ Verificar CPU
+        shell: powershell
+        run: |
+          Get-CimInstance Win32_Processor |
+            Select-Object Name, NumberOfCores, NumberOfLogicalProcessors
+
+      - name: 💾 Verificar armazenamento
+        shell: powershell
+        run: |
+          Get-PSDrive C
+
+      - name: 🚀 Teste NVIDIA
+        shell: powershell
+        run: |
+          nvidia-smi
