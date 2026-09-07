@@ -1,0 +1,26 @@
+name: Windows RDP
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 360
+
+    steps:
+      - name: 🔑 Criar Usuário e Senha do Windows
+        run: |
+          net user RunnerUser MinhaSenha123! /add
+          net localgroup Administrators RunnerUser /add
+
+      - name: 🌐 Instalar e Ativar Tailscale
+        shell: powershell
+        run: |
+          iwr -useb https://tailscale.com/install.ps1 | iex
+          & 'C:\Program Files\Tailscale\tailscale.exe' up --authkey=${{ secrets.TAILSCALE_AUTHKEY }}
+
+      - name: ⚡ Manter Máquina Ligada
+        run: |
+          cmd /c "echo RDP ativo. Conecte pelo Windows App! & pause > nul"
+          
