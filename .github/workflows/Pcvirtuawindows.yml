@@ -17,13 +17,13 @@ jobs:
           Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
 
       - name: 🌐 Iniciar Túnel e Exibir Endereço
-        shell: cmd
+        shell: powershell
         run: |
-          echo ==========================================
-          echo O ENDEREÇO DE CONEXÃO VAI APARECER ABAIXO:
-          echo ==========================================
-          start /b ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -p 443 -R 0:localhost:3389 qr@a.pinggy.io
-          timeout /t 10 /nobreak
+          echo "=========================================="
+          echo "O ENDEREÇO VAI APARECER ABAIXO EM ALGUNS SEGUNDOS:"
+          echo "=========================================="
+          Start-Process ssh -ArgumentList "-n -T -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -p 443 -R 0:localhost:3389 qr@a.pinggy.io"
+          Start-Sleep -Seconds 12
 
       - name: ⚡ Manter Máquina Ligada
         run: |
