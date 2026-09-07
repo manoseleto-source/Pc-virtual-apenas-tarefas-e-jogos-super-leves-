@@ -1,0 +1,40 @@
+name: Windows RDP Ngrok
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 360
+
+    steps:
+      - name: 🔑 Criar Usuário e Habilitar RDP
+        run: |
+          net user RunnerUser MinhaSenha123! /add
+          net localgroup Administrators RunnerUser /add
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
+          Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+
+      - name: 🌐 Instalar e Ativar Ngrok
+        shell: powershell
+        run: |
+          choco install ngrok -y
+          ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
+          Start-Process ngrok -ArgumentList "tcp 3389"
+
+      - name: 📌 Exibir Endereço de Conexão
+        shell: powershell
+        run: |
+          Start-Sleep -Seconds 5
+          $log = Invoke-RestMethod -Uri http://127.0.0.1:4040/api/tunnels
+          $url = $log.tunnels[0].public_url
+          echo "=========================================="
+          echo "CONECTE NO WINDOWS APP USANDO ESTE ENDEREÇO:"
+          echo $url
+          echo "=========================================="
+
+      - name: ⚡ Manter Máquina Ligada
+        run: |
+          cmd /c "echo RDP ativo via Ngrok! & pause > nul"
+          
