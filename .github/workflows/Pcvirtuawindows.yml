@@ -1,4 +1,4 @@
-name: Windows RDP Pinggy
+name: Windows RDP Localtunnel
 
 on:
   workflow_dispatch:
@@ -19,17 +19,25 @@ jobs:
       - name: 🌐 Iniciar Túnel e Exibir Endereço
         shell: powershell
         run: |
-          $process = Start-Process ssh -ArgumentList "-t -t -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -p 443 -R 0:localhost:3389 qr@a.pinggy.io" -RedirectStandardOutput "pinggy.log" -RedirectStandardError "pinggy_err.log" -PassThru
+          npm install -g localtunnel
+          Start-Process npx -ArgumentList "localtunnel --port 3389" -RedirectStandardOutput "lt.log"
 
-          Start-Sleep -Seconds 10
+          Start-Sleep -Seconds 8
 
-          if (Test-Path pinggy.log) {
-            echo "=========================================="
-            Get-Content pinggy.log
-            echo "=========================================="
+          if (Test-Path lt.log) {
+            $log = Get-Content lt.log -Raw
+            if ($log -match "(https://[a-zA-Z0-9\.-]+)") {
+              $url = $matches[1] -replace "https://", ""
+              echo "=========================================="
+              echo "COPIE E COLE ISSO NO WINDOWS APP:"
+              echo $url
+              echo "=========================================="
+            } else {
+              Get-Content lt.log
+            }
           }
 
       - name: ⚡ Manter Máquina Ligada
         run: |
-          cmd /c "echo RDP ativo via Pinggy! & pause > nul"
+          cmd /c "echo RDP ativo via Localtunnel! & pause > nul"
           
