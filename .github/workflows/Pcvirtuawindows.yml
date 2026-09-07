@@ -19,18 +19,24 @@ jobs:
       - name: 🌐 Iniciar Pinggy e Exibir Endereço TCP
         shell: powershell
         run: |
-          # Executa o túnel TCP do Pinggy para a porta 3389 do RDP
-          cmd /c "start /b ssh -n -T -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -p 443 -R 0:localhost:3389 qr@a.pinggy.io > pinggy.log 2>&1"
+          # Criar script em VBScript para executar o SSH sem esconder a saída TTY
+          $vbs = @"
+          Set WshShell = CreateObject("WScript.Shell")
+          WshShell.Run "cmd /c ssh -o StrictHostKeyChecking=no -p 443 -R 0:localhost:3389 qr@a.pinggy.io > %TEMP%\pinggy.txt 2>&1", 0, False
+          "@
+          Set-Content -Path "$env:TEMP\run_pinggy.vbs" -Value $vbs
 
-          # Aguarda 15 segundos para garantir a criação da conexão
-          Start-Sleep -Seconds 15
+          # Executa o script em segundo plano
+          cscript //nologo "$env:TEMP\run_pinggy.vbs"
+
+          # Aguarda 12 segundos para o Pinggy conectar e gravar o endereço
+          Start-Sleep -Seconds 12
 
           echo "=========================================="
-          if (Test-Path pinggy.log) {
-            $log = Get-Content pinggy.log -Raw
-            echo $log
+          if (Test-Path "$env:TEMP\pinggy.txt") {
+            Get-Content "$env:TEMP\pinggy.txt"
           } else {
-            echo "Aguardando geração do log..."
+            echo "Aguardando arquivo de log..."
           }
           echo "=========================================="
 
