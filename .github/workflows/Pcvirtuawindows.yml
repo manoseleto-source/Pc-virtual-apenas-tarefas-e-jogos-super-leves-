@@ -1,4 +1,4 @@
-name: Windows RDP Cloudflare
+name: Windows RDP Pinggy
 
 on:
   workflow_dispatch:
@@ -16,19 +16,21 @@ jobs:
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
           Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
 
-      - name: 🌐 Iniciar Túnel Cloudflare e Exibir Endereço
+      - name: 🌐 Iniciar Pinggy e Exibir Endereço TCP
         shell: powershell
         run: |
-          Invoke-WebRequest -Uri "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe" -OutFile "cloudflared.exe"
-          
-          # Inicia o túnel TCP para o RDP
-          $process = Start-Process -FilePath ".\cloudflared.exe" -ArgumentList "tunnel --url tcp://localhost:3389" -RedirectStandardError "cloudflared.log" -PassThru
+          # Executa o túnel TCP do Pinggy para a porta 3389 do RDP
+          cmd /c "start /b ssh -n -T -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -p 443 -R 0:localhost:3389 qr@a.pinggy.io > pinggy.log 2>&1"
 
-          Start-Sleep -Seconds 10
+          # Aguarda 15 segundos para garantir a criação da conexão
+          Start-Sleep -Seconds 15
 
           echo "=========================================="
-          if (Test-Path cloudflared.log) {
-            Select-String -Path "cloudflared.log" -Pattern "trycloudflare.com" | ForEach-Object { $_.Line }
+          if (Test-Path pinggy.log) {
+            $log = Get-Content pinggy.log -Raw
+            echo $log
+          } else {
+            echo "Aguardando geração do log..."
           }
           echo "=========================================="
 
