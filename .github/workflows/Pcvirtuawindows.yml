@@ -1,4 +1,4 @@
-name: Windows RDP Pinggy
+name: Windows RDP
 
 on:
   workflow_dispatch:
@@ -16,23 +16,18 @@ jobs:
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
           Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
 
-      - name: 🌐 Iniciar Túnel Pinggy
-        shell: powershell
+      - name: 🌐 Iniciar Túnel e Exibir Endereço
+        shell: cmd
         run: |
-          # Usa cmd Start para evitar o erro de redirecionamento de logs do PowerShell
-          cmd /c "start /b ssh -n -T -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -p 443 -R 0:localhost:3389 qr@a.pinggy.io > pinggy.log 2>&1"
-
-          Start-Sleep -Seconds 10
-
-          echo "=========================================="
-          if (Test-Path pinggy.log) {
-            Get-Content pinggy.log
-          } else {
-            echo "Aguardando log..."
-          }
-          echo "=========================================="
+          npm install -g localtunnel
+          start /b lt --port 3389 > lt.log 2>&1
+          timeout /t 10 /nobreak > nul
+          echo ==========================================
+          type lt.log
+          echo ==========================================
 
       - name: ⚡ Manter Máquina Ligada
         run: |
+          cmd /c "echo RDP ativo! & pause > nul"
           cmd /c "echo RDP ativo! & pause > nul"
           
