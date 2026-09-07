@@ -1,4 +1,4 @@
-name: Windows RDP
+name: Windows RDP Playit
 
 on:
   workflow_dispatch:
@@ -16,19 +16,17 @@ jobs:
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
           Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
 
-      - name: 🌐 Iniciar Túnel e Exibir Endereço
+      - name: 🌐 Iniciar Playit
         shell: powershell
         run: |
-          Invoke-WebRequest -Uri "https://github.com/ekzhang/bore/releases/download/v0.5.0/bore-v0.5.0-x86_64-pc-windows-msvc.zip" -OutFile "bore.zip"
-          Expand-Archive -Path "bore.zip" -DestinationPath "."
+          Invoke-WebRequest -Uri "https://github.com/playit-cloud/playit-agent/releases/download/v0.15.26/playit-windows-x86_64.exe" -OutFile "playit.exe"
+          Start-Process -FilePath ".\playit.exe" -ArgumentList "--secret playit" -RedirectStandardOutput "playit.log" -RedirectStandardError "playit_err.log"
 
-          Start-Process -FilePath ".\bore.exe" -ArgumentList "local 3389 --to bore.pub" -RedirectStandardOutput "bore.log" -RedirectStandardError "bore_err.log"
-
-          Start-Sleep -Seconds 8
+          Start-Sleep -Seconds 10
 
           echo "=========================================="
-          if (Test-Path bore.log) { Get-Content bore.log }
-          if (Test-Path bore_err.log) { Get-Content bore_err.log }
+          if (Test-Path playit.log) { Get-Content playit.log }
+          if (Test-Path playit_err.log) { Get-Content playit_err.log }
           echo "=========================================="
 
       - name: ⚡ Manter Máquina Ligada
