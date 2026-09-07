@@ -1,4 +1,4 @@
-name: Windows RDP Cloudflare
+name: Windows RDP
 
 on:
   workflow_dispatch:
@@ -16,20 +16,20 @@ jobs:
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
           Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
 
-      - name: 🌐 Iniciar Túnel Cloudflare e Exibir URL
+      - name: 🌐 Iniciar Túnel Bore e Exibir IP
         shell: powershell
         run: |
-          Invoke-WebRequest -Uri "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe" -OutFile "cloudflared.exe"
-          
-          # Inicia o túnel TCP
-          Start-Process -FilePath ".\cloudflared.exe" -ArgumentList "tunnel --url tcp://localhost:3389" -RedirectStandardError "cf.log"
+          Invoke-WebRequest -Uri "https://github.com/ekzhang/bore/releases/download/v0.5.0/bore-v0.5.0-x86_64-pc-windows-msvc.zip" -OutFile "bore.zip"
+          Expand-Archive -Path "bore.zip" -DestinationPath "." -Force
 
-          Start-Sleep -Seconds 10
+          # Separa a saída de erro da saída padrão para não travar o PowerShell
+          Start-Process -FilePath ".\bore.exe" -ArgumentList "local 3389 --to bore.pub" -RedirectStandardOutput "bore.log" -RedirectStandardError "bore_err.log"
+
+          Start-Sleep -Seconds 8
 
           echo "=========================================="
-          if (Test-Path cf.log) {
-            Get-Content cf.log | Select-String "trycloudflare.com"
-          }
+          if (Test-Path bore.log) { Get-Content bore.log }
+          if (Test-Path bore_err.log) { Get-Content bore_err.log }
           echo "=========================================="
 
       - name: ⚡ Manter Máquina Ligada
